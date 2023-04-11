@@ -11,7 +11,7 @@ export function highlight(text: string, words: string, html?: string) {
   // 匹配每一个特殊字符 ，进行转义
   const specialStr = ['*', '.', '?', '+', '$', '^', '[', ']', '{', '}', '|', '\\', '(', ')', '/', '%'];
 
-  let result = '';
+  let result = text;
   specialStr.forEach((v) => {
     if (words.indexOf(v) !== -1) {
       result = words.replace(new RegExp(`\\${v}`, 'g'), `\\${v}`);
