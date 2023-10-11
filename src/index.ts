@@ -6,3 +6,4 @@ export * from './hight-light';
 export * from './load-script';
 export * from './request-limit';
 export * from './get-video-poster';
+export * from './copy';
