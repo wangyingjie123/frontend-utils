@@ -1,7 +1,7 @@
 {
   "name": "htht-frontend-util",
   "version": "1.2.0",
-  "description": "",
+  "description": "前端常用工具库",
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -13,7 +13,7 @@
     "frontend",
     "utils"
   ],
-  "author": "wangyingjie",
+  "author": "kevinyj",
   "repository": {
     "type": "git",
     "url": "https://github.com/wangyingjie123/frontend-utils.git"
