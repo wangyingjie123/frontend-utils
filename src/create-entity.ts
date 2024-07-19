@@ -5,7 +5,7 @@ export const createTipEntity = (
   layer: CustomDataSource,
   text: string,
   position?: Cartesian3,
-  pixelOffset = new Cesium.Cartesian2(20, -10)
+  pixelOffset = new Cesium.Cartesian2(0, -20)
 ) => {
   const tipEntity = new Cesium.Entity({
     position,

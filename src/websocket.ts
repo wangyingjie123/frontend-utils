@@ -94,7 +94,6 @@ export class WebSocketClient {
   onError(e: Event) {
     this.onErrorCallback?.();
     this.reconnect();
-    // eslint-disable-next-line no-console
     console.error('websocket出现错误', e.target);
   }
 
@@ -139,7 +138,6 @@ export class WebSocketClient {
     }
     // 没连接上会一直重连，设置延迟避免请求过多
     this.#clearTimeoutnumTimeout();
-    // eslint-disable-next-line no-console
     console.log(`ws尝试重新连接-第 ${this.connectRetryCount + 1}次`);
     this.timeoutnum = setTimeout(() => {
       // 新连接

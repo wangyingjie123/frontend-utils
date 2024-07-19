@@ -8,6 +8,7 @@ import type {
   Property,
   Entity,
 } from 'cesium';
+
 import {
   createTipEntity,
   createPointEntity,
@@ -24,9 +25,11 @@ interface Position {
 interface MeasureOptions {
   callback?: (positions: Position[]) => void;
   showDelete?: boolean;
+  showTip?: boolean;
 }
+type BBox = [number, number, number, number] | [number, number, number, number, number, number];
 export class CesiumDraw {
-  readonly measureEndTip = '右键结束测量，esc取消绘制';
+  readonly measureEndTip = '右键结束绘制，esc取消绘制';
 
   readonly measureStartTip = '左键选择起点，esc取消绘制';
 
@@ -120,7 +123,50 @@ export class CesiumDraw {
       wgs84Array,
     };
   }
-
+  /**
+   * 返回矩形四个点的经纬度坐标
+   * @param positions
+   * @returns
+   */
+  static getRectanglePoint(positions: Cartesian3[]) {
+    const rectangle = Cesium.Rectangle.fromCartesianArray(positions);
+    // 西北角弧度坐标（左上）
+    const northwest = Cesium.Rectangle.northwest(rectangle);
+    // 西南角弧度坐标（左下）
+    const southwest = Cesium.Rectangle.southwest(rectangle);
+    // 东北角弧度坐标（右上）
+    const northeast = Cesium.Rectangle.northeast(rectangle);
+    // 东南角弧度坐标（右下）
+    const southeast = Cesium.Rectangle.southeast(rectangle);
+    const points = [
+      {
+        lon: Cesium.Math.toDegrees(northwest.longitude),
+        lat: Cesium.Math.toDegrees(northwest.latitude),
+        alt: 0,
+      },
+      {
+        lon: Cesium.Math.toDegrees(northeast.longitude),
+        lat: Cesium.Math.toDegrees(northeast.latitude),
+        alt: 0,
+      },
+      {
+        lon: Cesium.Math.toDegrees(southeast.longitude),
+        lat: Cesium.Math.toDegrees(southeast.latitude),
+        alt: 0,
+      },
+      {
+        lon: Cesium.Math.toDegrees(southwest.longitude),
+        lat: Cesium.Math.toDegrees(southwest.latitude),
+        alt: 0,
+      },
+      {
+        lon: Cesium.Math.toDegrees(northwest.longitude),
+        lat: Cesium.Math.toDegrees(northwest.latitude),
+        alt: 0,
+      },
+    ];
+    return points;
+  }
   /**
    * 计算一组坐标组成多边形的面积
    * @param {*} positions 坐标集合
@@ -198,14 +244,12 @@ export class CesiumDraw {
       this.destroy();
       this.drawLayer.entities.remove(tipEntity);
       const { distance, wgs84Array } = CesiumDraw.getPositionDistance(positions);
-      const distanceText = `${(distance / 1e3).toFixed(2)}km`;
+      let distanceText = '';
+      if (options?.showTip) {
+        distanceText = `${(distance / 1e3).toFixed(2)}km`;
+      }
       createPointEntity(cartesian, this.drawLayer, distanceText);
-      const deleteTipEntity = createTipEntity(
-        this.drawLayer,
-        `删除`,
-        cartesian,
-        new Cesium.Cartesian2(distanceText.length * 8 + 20, -19)
-      );
+      const deleteTipEntity = createTipEntity(this.drawLayer, `删除`, cartesian, new Cesium.Cartesian2(0, -50));
       this.deleteEntity(deleteTipEntity);
       if (options?.callback && typeof options.callback === 'function') {
         options.callback(wgs84Array);
@@ -274,20 +318,18 @@ export class CesiumDraw {
       this.drawLayer.entities.remove(tipEntity);
       positions.push(positions[0]);
       const { area, wgs84Array } = CesiumDraw.getPositionsArea(positions);
-      const areaText = `${(area / 1e6).toFixed(2)}km²`;
+      let areaText = '';
+      if (options?.showTip) {
+        areaText = `${(area / 1e6).toFixed(2)}km²`;
+      }
       // 添加信息点
       createPointEntity(cartesian, this.drawLayer, areaText);
       if (options?.showDelete) {
-        const deleteTipEntity = createTipEntity(
-          this.drawLayer,
-          `删除`,
-          cartesian,
-          new Cesium.Cartesian2(areaText.length * 8 + 20, -19)
-        );
+        const deleteTipEntity = createTipEntity(this.drawLayer, `删除`, cartesian, new Cesium.Cartesian2(-12, -50));
         this.deleteEntity(deleteTipEntity);
       }
       if (options && typeof options.callback === 'function') {
-        options.callback(wgs84Array);
+        options.callback(wgs84Array.slice(0, -1));
       }
     }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
   }
@@ -312,10 +354,7 @@ export class CesiumDraw {
       tipEntity.label!.text = '鼠标移动选区域，右键结束绘制，esc取消' as unknown as Property;
       createPointEntity(cartesian, this.drawLayer);
       rectangle = createRectangleEntity(
-        new Cesium.CallbackProperty(() => {
-          const obj = Cesium.Rectangle.fromCartesianArray(positions);
-          return obj;
-        }, false),
+        new Cesium.CallbackProperty(() => Cesium.Rectangle.fromCartesianArray(positions), false),
         this.drawLayer
       );
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
@@ -335,9 +374,9 @@ export class CesiumDraw {
       createPointEntity(positions[1], this.drawLayer);
       document.removeEventListener('keydown', this.escCancel);
       this.destroy();
-      const { wgs84Array } = CesiumDraw.getPositionsArea(positions);
+      const rectanglePoints = CesiumDraw.getRectanglePoint(positions);
       if (options && typeof options.callback === 'function') {
-        options.callback(wgs84Array);
+        options.callback(rectanglePoints);
       }
     }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
   }
@@ -353,6 +392,19 @@ export class CesiumDraw {
         this.clear();
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+  }
+  /**
+   * 根据bbox画矩形
+   * @param bbox
+   * @returns
+   */
+  createBorderEntity(bbox: BBox) {
+    this.clear();
+    const borderEntity = createRectangleEntity(
+      new Cesium.CallbackProperty(() => Cesium.Rectangle.fromDegrees(...bbox), false),
+      this.drawLayer
+    );
+    return borderEntity;
   }
 
   /**
