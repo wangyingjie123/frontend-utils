@@ -1,6 +1,6 @@
 {
   "name": "htht-frontend-util",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "前端常用工具库",
   "main": "./dist/index.js",
   "scripts": {
